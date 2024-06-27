@@ -1,7 +1,9 @@
-import os
 import re
+## temp
+import time
+## temp
 import nltk
-from typing import List, Tuple
+from typing import List
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,40 +18,16 @@ from nltk.stem import WordNetLemmatizer
 #from joblib import Parallel, delayed
 from concurrent.futures import ProcessPoolExecutor
 
-import random
 import optuna
 #from sklearn.pipeline import Pipeline
 #from sklearn.model_selection import train_test_split
 #from concurrent.futures import ThreadPoolExecutor
 from loguru import logger
 
+from doc_loader import DocumentLoader
+
 nltk.download("stopwords")
 nltk.download("wordnet")
-
-
-class DocumentLoader:
-    def __init__(self, folder_path: str):
-        self.folder_path = folder_path
-
-    def load_documents(self, num_samples: int = None) -> Tuple[List[str], List[str]]:
-        documents = []
-        filenames = []
-        logger.info(f"Loading Documents from '{self.folder_path}' folder...")
-        folder_data_list = os.listdir(self.folder_path)[:500]
-
-        if num_samples:
-            folder_data_list = random.choices(folder_data_list, k=num_samples)
-            #folder_data_list = folder_data_list[:num_samples]
-
-        for filename in folder_data_list: # temp processor
-            if filename.endswith(".txt"):
-                with open(
-                    os.path.join(self.folder_path, filename), "r", encoding="utf-8"
-                ) as file:
-                    documents.append(file.read())
-                    filenames.append(filename)
-        logger.success("Documents successfully loaded.")
-        return documents, filenames
 
 
 class TextPreprocessor:
@@ -178,23 +156,30 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-    logger.info("OPTIMIZING/SEARCHING BEST HYPERPARAMETERS...")
-    study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=5)
-
-    logger.success(f"Best hyperparameters: {study.best_params}")
-    #study.optimize(objective, n_trials=8)
-    #Best hyperparameters: {'max_features': 1000, 'n_components': 100}
+    #logger.info("OPTIMIZING/SEARCHING BEST HYPERPARAMETERS...")
+    #study = optuna.create_study(direction="maximize")
     #study.optimize(objective, n_trials=5)
-    #Best hyperparameters: {'max_features': 1000, 'n_components': 100, 'min_cluster_size': 70, 'min_samples': 17}
-    best_max_features = study.best_params["max_features"] 
-    best_n_components = study.best_params["n_components"] 
-    best_min_cluster_size = study.best_params["min_cluster_size"]
-    best_min_samples = study.best_params["min_samples"]
 
+    #logger.success(f"Best hyperparameters: {study.best_params}")
+
+    #Best hyperparameters: {'max_features': 1000, 'n_components': 100, 'min_cluster_size': 70, 'min_samples': 17}
+    #best_max_features = study.best_params["max_features"] 
+    #best_n_components = study.best_params["n_components"] 
+    #best_min_cluster_size = study.best_params["min_cluster_size"]
+    #best_min_samples = study.best_params["min_samples"]
+
+    best_max_features = 1000
+    best_n_components = 100
+    best_min_cluster_size = 70
+    best_min_samples = 10
+    
+    ## temp
+    #whole_process_start_time = time.time()
+    ## temp
     folder_path = "companies_data"
     loader = DocumentLoader(folder_path)
-    documents, filenames = loader.load_documents(num_samples=7500)
+    #documents, filenames = loader.load_documents(num_samples=7500)
+    documents, filenames = loader.load_documents(num_samples=3500)
     preprocessor = TextPreprocessor()
     processed_docs = preprocessor.preprocess_documents(documents)
 
@@ -207,7 +192,10 @@ if __name__ == "__main__":
     labels = clusterer.cluster_documents(X_reduced)
 
     clusterer.evaluate_clustering(X_reduced, labels)
-    print(len(labels))
+    ## temp
+    #whole_process_end_time = time.time()
+    #print(whole_process_end_time - whole_process_start_time)
+    ## temp
 
     clusterer.save_results(filenames, labels)
 

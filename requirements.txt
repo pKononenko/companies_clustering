@@ -5,3 +5,4 @@ matplotlib
 sklearn
 optuna
 hdbscan
+loguru

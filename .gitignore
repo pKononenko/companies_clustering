@@ -1,2 +1,3 @@
 venv/
 companies_data/
+__pycache__/
