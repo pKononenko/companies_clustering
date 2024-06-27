@@ -69,67 +69,9 @@ class TextPreprocessor:
 
     def preprocess_documents(self, documents: List[str]) -> List[str]:
         logger.info("Documents preprocessing..")
-        #for idx, doc in enumerate(documents):
-        #    print(f"DOCUMENT {idx}")
-        #    self.preprocess_text(doc)
-        #return []
-        #return [self.preprocess_text(doc) for doc in documents]
-        # threadpool used to speed up WordNetLematizer
-        #with ThreadPoolExecutor() as executor:
-        #    processed_docs = list(executor.map(self.preprocess_text, documents))
-        #return processed_docs
         with ProcessPoolExecutor() as executor:
             processed_docs = list(executor.map(self.preprocess_text, documents))
         return processed_docs
-'''class TextPreprocessor:
-    def __init__(self, max_length: int = 2000000):
-        self.nlp = spacy.load("en_core_web_sm")
-        self.nlp.max_length = max_length # Increase spaCy max length limit
-
-        # temp
-        self.d_idx = 0
-
-    def preprocess_text(self, text: str) -> str:
-        text = text.lower()  # Lowercase text
-        text = re.sub(r"[^\w\s]", "", text)  # Remove punctuation
-        tokens = []
-        if len(text) > self.nlp.max_length:
-            chunks = [text[i:i + self.nlp.max_length] for i in range(0, len(text), self.nlp.max_length)]
-            for chunk in chunks:
-                doc = self.nlp(chunk)
-                tokens.extend(
-                    token.lemma_
-                    for token in doc
-                    if not token.is_stop and not token.is_punct and token.lemma_ != "-PRON-"
-                )
-        else:
-            doc = self.nlp(text)
-            tokens = [
-                token.lemma_
-                for token in doc
-                if not token.is_stop and not token.is_punct and token.lemma_ != "-PRON-"
-            ]
-        self.d_idx += 1 # temp
-        print(self.d_idx) # temp
-        return " ".join(tokens)
-
-    #def preprocess_text(self, text: str) -> str:
-    #    text = text.lower()  # Lowercase text
-    #    text = re.sub(r"[^\w\s]", "", text)  # Remove punctuation
-    #    doc = self.nlp(text)
-    #    tokens = [
-    #        token.lemma_
-    #        for token in doc
-    #        if not token.is_stop and not token.is_punct and token.lemma_ != "-PRON-"
-    #    ]
-    #    return " ".join(tokens)
-
-    def preprocess_documents(self, documents: List[str]) -> List[str]:
-        logger.info("Documents preprocessing..")
-        #return Parallel(n_jobs=-1)(delayed(self.preprocess_text)(doc) for doc in documents)
-        with ProcessPoolExecutor() as executor:
-            processed_docs = list(executor.map(self.preprocess_text, documents))
-        return processed_docs'''
 
 
 class FeatureExtractor:
@@ -201,10 +143,12 @@ class DocumentClusterVisualizer:
 def objective(trial):
     max_features = trial.suggest_int("max_features", 1000, 10000, step=1000)
     n_components = trial.suggest_int("n_components", 10, 200, step=10)
+    min_cluster_size = trial.suggest_int("min_cluster_size", 10, 200, step=10)
+    min_samples = trial.suggest_int("min_samples", 1, 20)
 
     folder_path = "companies_data"
     loader = DocumentLoader(folder_path)
-    documents, filenames = loader.load_documents(num_samples=1000)
+    documents, filenames = loader.load_documents(num_samples=2500)
     preprocessor = TextPreprocessor()
     processed_docs = preprocessor.preprocess_documents(documents)
     logger.success("Documents successfully preprocessed.")
@@ -222,7 +166,7 @@ def objective(trial):
     reducer = DimensionalityReducer(n_components=n_components)
     X_reduced = reducer.reduce_dimensionality(X)
 
-    clusterer = DocumentClusterer()
+    clusterer = DocumentClusterer(min_cluster_size=min_cluster_size, min_samples=min_samples)
     labels = clusterer.cluster_documents(X_reduced)
     logger.success(f"Number of clustered labels: {len(labels)}")
 
@@ -236,16 +180,21 @@ def objective(trial):
 if __name__ == "__main__":
     logger.info("OPTIMIZING/SEARCHING BEST HYPERPARAMETERS...")
     study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=8)
+    study.optimize(objective, n_trials=5)
 
     logger.success(f"Best hyperparameters: {study.best_params}")
+    #study.optimize(objective, n_trials=8)
     #Best hyperparameters: {'max_features': 1000, 'n_components': 100}
-    best_max_features = study.best_params["max_features"] #2000#
-    best_n_components = study.best_params["n_components"] #140#
+    #study.optimize(objective, n_trials=5)
+    #Best hyperparameters: {'max_features': 1000, 'n_components': 100, 'min_cluster_size': 70, 'min_samples': 17}
+    best_max_features = study.best_params["max_features"] 
+    best_n_components = study.best_params["n_components"] 
+    best_min_cluster_size = study.best_params["min_cluster_size"]
+    best_min_samples = study.best_params["min_samples"]
 
     folder_path = "companies_data"
     loader = DocumentLoader(folder_path)
-    documents, filenames = loader.load_documents(num_samples=5000)
+    documents, filenames = loader.load_documents(num_samples=7500)
     preprocessor = TextPreprocessor()
     processed_docs = preprocessor.preprocess_documents(documents)
 
@@ -254,7 +203,7 @@ if __name__ == "__main__":
     reducer = DimensionalityReducer(n_components=best_n_components)
     X_reduced = reducer.reduce_dimensionality(X)
 
-    clusterer = DocumentClusterer()
+    clusterer = DocumentClusterer(min_cluster_size=best_min_cluster_size, min_samples=best_min_samples)
     labels = clusterer.cluster_documents(X_reduced)
 
     clusterer.evaluate_clustering(X_reduced, labels)
