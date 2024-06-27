@@ -6,3 +6,4 @@ sklearn
 optuna
 hdbscan
 loguru
+cython

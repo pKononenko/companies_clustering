@@ -1,4 +1,3 @@
-import re
 ## temp
 import time
 ## temp
@@ -11,12 +10,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 from hdbscan import HDBSCAN
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
 
 #import spacy
 #from joblib import Parallel, delayed
-from concurrent.futures import ProcessPoolExecutor
 
 import optuna
 #from sklearn.pipeline import Pipeline
@@ -25,31 +21,10 @@ import optuna
 from loguru import logger
 
 from doc_loader import DocumentLoader
+from txt_preprocessor import TextPreprocessor
 
 nltk.download("stopwords")
 nltk.download("wordnet")
-
-
-class TextPreprocessor:
-    def __init__(self):
-        self.stop_words = set(stopwords.words("english"))
-        self.lemmatizer = WordNetLemmatizer()
-
-    def preprocess_text(self, text: str) -> str:
-        text = text.lower()
-        text = re.sub(r"[^\w\s]", "", text)
-        text = " ".join(
-            self.lemmatizer.lemmatize(word)
-            for word in text.split()
-            if word not in self.stop_words
-        )
-        return text
-
-    def preprocess_documents(self, documents: List[str]) -> List[str]:
-        logger.info("Documents preprocessing..")
-        with ProcessPoolExecutor() as executor:
-            processed_docs = list(executor.map(self.preprocess_text, documents))
-        return processed_docs
 
 
 class FeatureExtractor:
@@ -179,9 +154,11 @@ if __name__ == "__main__":
     folder_path = "companies_data"
     loader = DocumentLoader(folder_path)
     #documents, filenames = loader.load_documents(num_samples=7500)
-    documents, filenames = loader.load_documents(num_samples=3500)
+    documents, filenames = loader.load_documents(num_samples=4000)
     preprocessor = TextPreprocessor()
+    st = time.time()
     processed_docs = preprocessor.preprocess_documents(documents)
+    print(time.time() - st)
 
     extractor = FeatureExtractor(max_features=best_max_features)
     X = extractor.extract_features(processed_docs)
