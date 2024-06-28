@@ -1,13 +1,11 @@
 ## temp
 import time
 ## temp
-import nltk
 from typing import List
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import PCA
+from sklearn.decomposition import IncrementalPCA
 from sklearn.metrics import silhouette_score
 from hdbscan import HDBSCAN
 
@@ -21,10 +19,13 @@ import optuna
 from loguru import logger
 
 from doc_loader import DocumentLoader
+from visualizer import DocumentClusterVisualizer
 from txt_preprocessor import TextPreprocessor
+from corpus_loader import check_nltk_data
 
-nltk.download("stopwords")
-nltk.download("wordnet")
+
+# NLTK corpus loading
+check_nltk_data()
 
 
 class FeatureExtractor:
@@ -38,7 +39,7 @@ class FeatureExtractor:
 
 class DimensionalityReducer:
     def __init__(self, n_components: int):
-        self.pca = PCA(n_components=n_components)
+        self.pca = IncrementalPCA(n_components=n_components)
 
     def reduce_dimensionality(self, X: np.ndarray) -> np.ndarray:
         logger.info("Dimensionality reduction...")
@@ -63,34 +64,6 @@ class DocumentClusterer:
     def save_results(self, filenames: List[str], labels: np.ndarray, output_file: str = "clustering_results.csv") -> None:
         results = pd.DataFrame({"Filename": filenames, "Cluster": labels})
         results.to_csv(output_file, index=False)
-
-
-class DocumentClusterVisualizer:
-    @staticmethod
-    def visualize(X: np.ndarray, labels: np.ndarray) -> None:
-        plt.figure(figsize=(10, 8))
-        unique_labels = set(labels)
-        colors = plt.cm.Spectral(np.linspace(0, 1, len(unique_labels)))
-
-        for k, col in zip(unique_labels, colors):
-            if k == -1:
-                col = "k"  # Black color for noise
-
-            class_member_mask = labels == k
-            xy = X[class_member_mask]
-            plt.plot(
-                xy[:, 0],
-                xy[:, 1],
-                "o",
-                markerfacecolor=col,
-                markeredgecolor="k",
-                markersize=6,
-            )
-
-        plt.title("HDBSCAN Clustering Results")
-        plt.xlabel("PCA Component 1")
-        plt.ylabel("PCA Component 2")
-        plt.show()
 
 
 def objective(trial):

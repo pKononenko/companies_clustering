@@ -51,10 +51,10 @@ class DocumentLoader:
         filenames = [f for f in os.listdir(self.folder_path) if f.endswith(".txt")]
         if num_samples:
             filenames = random.choices(filenames, k=num_samples)
-        
+
         with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
             results = list(executor.map(self._load_single_document, filenames))
-        
+
         documents, filenames = zip(*results)
         logger.success("Documents successfully loaded.")
         return list(documents), list(filenames)

@@ -5,13 +5,20 @@ from nltk.stem import WordNetLemmatizer
 from loguru import logger
 from concurrent.futures import ProcessPoolExecutor
 
-import pyximport;
+import pyximport
+
 pyximport.install(pyimport=True)
 
 from cython_modules.text_processing import remove_punctuation, lemmatize_text
 
+stopwords_set = set(stopwords.words("english"))
+
 
 ### TODO: OPTIMIZE LIBRARY LOADING IN FUTURE ###
+### TODO: RESEARCH MORE CYTHON TO SPEED UP PROCESSOR ###
+### TODO: OPTIMIZE FEATURE EXTRACTOR ###
+### TODO: OPTIMIZE CLUSTER ###
+### TODO: OPTIMIZE DIMENSIONALITY REDUCTION ###
 ### TODO: RESEARCH MORE CYTHON TO SPEED UP PROCESSOR ###
 ### TODO: CHECK ISSUE WITH PROCESSING ORDER WITH MULTITHREADING ###
 ### TODO: CHECK ISSUE WITH SEVERAL IDENTICAL FILES IN CLUSTERS ###
@@ -24,10 +31,11 @@ class TextPreprocessor:
             num_workers (int, optional): Number of ProcessPool workers.
                 Defaults to None. None equals to all available workers.
         """
-        self.stop_words = set(stopwords.words("english"))
+        # Ensure NLTK data is initialized in the worker process
+        self.stop_words = stopwords_set
         self.lemmatizer = WordNetLemmatizer()
         self.num_workers = num_workers
-    
+
     def preprocess_text(self, text: str) -> str:
         """Preprocessing and lemmatization.
 
