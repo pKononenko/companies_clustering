@@ -1,3 +1,6 @@
 venv/
 companies_data/
 __pycache__/
+build/
+*.с
+*.pyd

@@ -1,11 +1,5 @@
 import os
 import numpy as np
-
-# Set the MPLCONFIGDIR environment variable
-os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib'
-# Disable Cython extensions for Matplotlib
-os.environ['USE_CYTHON'] = 'False'
-
 import matplotlib.pyplot as plt
 
 

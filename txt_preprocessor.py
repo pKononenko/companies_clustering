@@ -1,27 +1,19 @@
-import re
 from typing import List
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from loguru import logger
 from concurrent.futures import ProcessPoolExecutor
 
-import pyximport
-
-pyximport.install(pyimport=True)
+# dynamic cython compilation
+# can cause problems with matplot
+#import pyximport
+#pyximport.install(pyimport=True)
 
 from cython_modules.text_processing import remove_punctuation, lemmatize_text
 
 stopwords_set = set(stopwords.words("english"))
 
 
-### TODO: OPTIMIZE LIBRARY LOADING IN FUTURE ###
-### TODO: RESEARCH MORE CYTHON TO SPEED UP PROCESSOR ###
-### TODO: OPTIMIZE FEATURE EXTRACTOR ###
-### TODO: OPTIMIZE CLUSTER ###
-### TODO: OPTIMIZE DIMENSIONALITY REDUCTION ###
-### TODO: RESEARCH MORE CYTHON TO SPEED UP PROCESSOR ###
-### TODO: CHECK ISSUE WITH PROCESSING ORDER WITH MULTITHREADING ###
-### TODO: CHECK ISSUE WITH SEVERAL IDENTICAL FILES IN CLUSTERS ###
 class TextPreprocessor:
     """Documents text preprocessor class"""
 

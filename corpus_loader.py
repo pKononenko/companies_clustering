@@ -7,5 +7,5 @@ def check_nltk_data():
         nltk.data.find("corpora/stopwords")
         nltk.data.find("corpora/wordnet")
     except LookupError:
-        nltk.download("stopwords")
-        nltk.download("wordnet")
+        nltk.download("stopwords", quiet=True)
+        nltk.download("wordnet", quiet=True)
