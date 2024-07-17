@@ -1,5 +1,12 @@
+      ########
+   ##############
+### NOT DONE YET ###
+   ##############
+      ########
 import os
+import click
 from loguru import logger
+
 
 from doc_loader import DocumentLoader
 from txt_preprocessor import TextPreprocessor
@@ -7,31 +14,36 @@ from corpus_loader import check_nltk_data
 from embeddings.embedding_extractor import EmbeddingExtractor
 from embeddings.vector_db_loader import FaissIndex
 
-
 # NLTK corpus loading
 check_nltk_data()
 
 
-if __name__ == "__main__":
+@click.command()
+@click.option("-o", "--option", type=click.INT, default=1)
+@click.option("-n", "--num_docs", type=click.INT, default=200)
+def cli(option, num_docs):
     folder_path = "companies_data"
-    loader = DocumentLoader(folder_path)
-    documents, filenames = loader.load_documents(num_samples=200)#2000)
-    preprocessor = TextPreprocessor()
-    processed_docs = preprocessor.preprocess_documents(documents)
 
-    extractor = EmbeddingExtractor(model_name='bert-base-nli-mean-tokens')
-    embeddings = extractor.extract_embeddings(processed_docs)
+    if option == 1:
+        loader = DocumentLoader(folder_path)
+        documents, filenames = loader.load_documents(num_samples=200)  # 2000)
+        preprocessor = TextPreprocessor()
+        processed_docs = preprocessor.preprocess_documents(documents)
 
-    embedding_dim = embeddings.shape[1]
-    faiss_index = FaissIndex(embedding_dim)
+        extractor = EmbeddingExtractor(model_name='bert-base-nli-mean-tokens')
+        embeddings = extractor.extract_embeddings(processed_docs)
 
-    # Check if embeddings vector db exists
-    if os.path.exists("faiss_index.bin") and os.path.exists("document_ids.pkl"):
-        logger.info("Vector DB exists. Loading embeddings...")
-        faiss_index.load_index("faiss_index.bin", "document_ids.pkl")
-    else:
-        faiss_index.add_embeddings(embeddings, filenames)
-        faiss_index.save_index("faiss_index.bin", "document_ids.pkl")
+        embedding_dim = embeddings.shape[1]
+
+        # Check if embeddings vector db exists
+        if os.path.exists("faiss_index.bin") and os.path.exists("document_ids.pkl"):
+            logger.info("Vector DB exists. Loading embeddings...")
+            faiss_index.load_index("faiss_index.bin", "document_ids.pkl")
+        else:
+            faiss_index.add_embeddings(embeddings, filenames)
+            faiss_index.save_index("faiss_index.bin", "document_ids.pkl")
+
+    elif option == 2:
 
     new_doc = "companies_data/357156 - NextML AB.txt"
     with open(new_doc, "r", encoding="utf-8") as file:
@@ -52,3 +64,6 @@ if __name__ == "__main__":
     differences = extractor.find_differences_with_bert(new_doc_content, similar_doc_contents)
     for doc, diff in differences:
         print(f"Differences in document {doc}: {diff}")
+
+if __name__ == "__main__":
+    cli()

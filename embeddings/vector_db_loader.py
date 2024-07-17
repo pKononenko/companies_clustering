@@ -25,7 +25,9 @@ class FaissIndex:
         self.index.add(embeddings)
         self.document_ids.extend(ids)
 
-    def search(self, query_embedding: np.ndarray, top_k: int = 5) -> List[Tuple[int, float]]:
+    def search(
+        self, query_embedding: np.ndarray, top_k: int = 5
+    ) -> List[Tuple[int, float]]:
         """Search for similar embeddings in the Faiss index.
 
         Args:
@@ -36,7 +38,11 @@ class FaissIndex:
             List[Tuple[int, float]]: Simmilar documents list.
         """
         distances, indices = self.index.search(query_embedding, top_k)
-        return [(self.document_ids[idx], distances[0][i]) for i, idx in enumerate(indices[0])]
+        return [
+            (self.document_ids[idx], distances[0][i])
+            for i, idx in enumerate(indices[0])
+            if distances[0][i] > 0
+        ]
 
     def save_index(self, index_path: str, ids_path: str) -> None:
         """Save Faiss index and document IDs."""
@@ -48,8 +54,12 @@ class FaissIndex:
         self.index = faiss.read_index(index_path)
         self.document_ids = joblib.load(ids_path)
 
-    def document_exists(self, document: str, embeddings: np.ndarray, threshold: float = 1e-5) -> bool:
+    def document_exists(
+        self, document: str, embeddings: np.ndarray, threshold: float = 1e-5
+    ) -> bool:
         """Check if a document already exists in the Faiss index."""
         query_embedding = embeddings[-1].reshape(1, -1)
         _, distances = self.index.search(query_embedding, 1)
-        return distances[0][0] < threshold  # Threshold for considering a document as identical
+        return (
+            distances[0][0] < threshold
+        )  # Threshold for considering a document as identical
