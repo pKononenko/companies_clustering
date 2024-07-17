@@ -5,3 +5,5 @@ matplotlib
 sklearn
 optuna
 hdbscan
+loguru
+cython
