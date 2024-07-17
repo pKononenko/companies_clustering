@@ -3,12 +3,30 @@ import pandas as pd
 from typing import List
 from loguru import logger
 from hdbscan import HDBSCAN
-from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
+from sklearn.metrics import (
+    silhouette_score,
+    davies_bouldin_score,
+    calinski_harabasz_score,
+)
 
 
 class DocumentClusterer:
-    def __init__(self, min_cluster_size: int = 5, max_cluster_size: int = 10, min_samples: int = 1, cluster_selection_method: str = "eom", metric: str = "euclidean"):
-        self.hdbscan = HDBSCAN(min_cluster_size=min_cluster_size, max_cluster_size=max_cluster_size, min_samples=min_samples, cluster_selection_method=cluster_selection_method, metric=metric, p=4)
+    def __init__(
+        self,
+        min_cluster_size: int = 5,
+        max_cluster_size: int = 10,
+        min_samples: int = 1,
+        cluster_selection_method: str = "eom",
+        metric: str = "euclidean",
+    ):
+        self.hdbscan = HDBSCAN(
+            min_cluster_size=min_cluster_size,
+            max_cluster_size=max_cluster_size,
+            min_samples=min_samples,
+            cluster_selection_method=cluster_selection_method,
+            metric=metric,
+            p=4,
+        )
 
     def cluster_documents(self, X: np.ndarray) -> np.ndarray:
         logger.info("Document clustering...")
@@ -25,6 +43,11 @@ class DocumentClusterer:
         else:
             logger.info("Only one cluster found.")
 
-    def save_results(self, filenames: List[str], labels: np.ndarray, output_file: str = "clustering_results.csv") -> None:
+    def save_results(
+        self,
+        filenames: List[str],
+        labels: np.ndarray,
+        output_file: str = "clustering_results.csv",
+    ) -> None:
         results = pd.DataFrame({"Filename": filenames, "Cluster": labels})
         results.to_csv(output_file, index=False)

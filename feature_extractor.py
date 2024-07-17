@@ -2,7 +2,8 @@ import numpy as np
 from typing import List
 from loguru import logger
 from sklearn.feature_extraction.text import TfidfVectorizer
-#from sklearn.feature_extraction.text import HashingVectorizer
+
+# from sklearn.feature_extraction.text import HashingVectorizer
 
 
 class FeatureExtractor:
@@ -29,7 +30,7 @@ class FeatureExtractor:
 
 
 # older optimized version
-'''class FeatureExtractor:
+"""class FeatureExtractor:
     def __init__(self, max_features: int):
         self.vectorizer = HashingVectorizer(n_features=max_features, alternate_sign=False)
 
@@ -38,4 +39,4 @@ class FeatureExtractor:
         features = Parallel(n_jobs=-1)(delayed(self.vectorizer.transform)([doc]) for doc in processed_docs)
         features = np.vstack([f.toarray() for f in features])
         logger.info(f"Extracted features with shape {features.shape}.")
-        return features'''
+        return features"""
