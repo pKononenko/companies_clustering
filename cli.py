@@ -5,6 +5,7 @@
       ########
 import os
 import click
+import joblib
 from loguru import logger
 
 
@@ -21,49 +22,53 @@ check_nltk_data()
 @click.command()
 @click.option("-o", "--option", type=click.INT, default=1)
 @click.option("-n", "--num_docs", type=click.INT, default=200)
-def cli(option, num_docs):
+@click.option("-d", "--new_doc", type=click.STRING, default="")
+@click.option("-k", "--top_k", type=click.INT, default=5)
+def cli(option, num_docs, new_doc, top_k):
     folder_path = "companies_data"
 
+    loader = DocumentLoader(folder_path)
+    preprocessor = TextPreprocessor()
+    extractor = EmbeddingExtractor(model_name='bert-base-nli-mean-tokens')
+
+    embedding_dim = 768 # for bert base
+    faiss_index = FaissIndex(embedding_dim)
+
     if option == 1:
-        loader = DocumentLoader(folder_path)
-        documents, filenames = loader.load_documents(num_samples=200)  # 2000)
-        preprocessor = TextPreprocessor()
+        documents, filenames = loader.load_documents(num_samples=num_docs)
         processed_docs = preprocessor.preprocess_documents(documents)
-
-        extractor = EmbeddingExtractor(model_name='bert-base-nli-mean-tokens')
         embeddings = extractor.extract_embeddings(processed_docs)
-
-        embedding_dim = embeddings.shape[1]
 
         # Check if embeddings vector db exists
         if os.path.exists("faiss_index.bin") and os.path.exists("document_ids.pkl"):
-            logger.info("Vector DB exists. Loading embeddings...")
             faiss_index.load_index("faiss_index.bin", "document_ids.pkl")
+            existing_filenames = joblib.load("document_ids.pkl")
+            faiss_index.update_embeddings(existing_filenames, processed_docs, filenames, extractor)
         else:
             faiss_index.add_embeddings(embeddings, filenames)
             faiss_index.save_index("faiss_index.bin", "document_ids.pkl")
+            joblib.dump(filenames, "document_ids.pkl")
 
     elif option == 2:
+        if not os.path.exists("faiss_index.bin") or not os.path.exists("document_ids.pkl"):
+            logger.error("Faiss index DB not found, create it with commands: python cli.py -o 1 --num_docs 1")
 
-    new_doc = "companies_data/357156 - NextML AB.txt"
-    with open(new_doc, "r", encoding="utf-8") as file:
-        new_doc_content = file.read()
-    new_doc_processed = preprocessor.preprocess_text(new_doc_content)
-    new_doc_embedding = extractor.extract_embeddings([new_doc_processed])
+        else:
+            faiss_index.load_index("faiss_index.bin", "document_ids.pkl")
 
-    if not faiss_index.document_exists(new_doc_processed, new_doc_embedding):
-        faiss_index.add_embeddings(new_doc_embedding, [new_doc])
-        faiss_index.save_index("faiss_index.bin", "document_ids.pkl")
+            new_doc_content, _ = loader._load_single_document(new_doc)
+            new_doc_processed = preprocessor.preprocess_text(new_doc_content)
+            new_doc_embedding = extractor.extract_embeddings([new_doc_processed])
 
-    similar_docs = faiss_index.search(new_doc_embedding, top_k=5)
-    for doc_id, dist in similar_docs:
-        print(f"Document: {doc_id}, Distance: {dist}")
+            if not faiss_index.document_exists(new_doc_embedding):
+                faiss_index.add_embeddings(new_doc_embedding, [new_doc])
+                faiss_index.save_index("faiss_index.bin", "document_ids.pkl")
 
-    similar_doc_ids = [doc_id for doc_id, _ in similar_docs]
-    similar_doc_contents = [documents[filenames.index(doc_id)] for doc_id in similar_doc_ids]
-    differences = extractor.find_differences_with_bert(new_doc_content, similar_doc_contents)
-    for doc, diff in differences:
-        print(f"Differences in document {doc}: {diff}")
+            similar_docs = faiss_index.search(new_doc_embedding, top_k=top_k)
+            faiss_index.save_csv(new_doc, similar_docs)
+            for doc_id, dist in similar_docs:
+                print(f"Document: {doc_id}, Distance: {dist}")
+
 
 if __name__ == "__main__":
     cli()

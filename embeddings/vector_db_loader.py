@@ -1,7 +1,11 @@
+import os
 import joblib
+import pandas as pd
+from loguru import logger
 import numpy as np
 from typing import List, Tuple
 import faiss
+from embeddings.embedding_extractor import EmbeddingExtractor
 
 
 class FaissIndex:
@@ -27,7 +31,7 @@ class FaissIndex:
 
     def search(
         self, query_embedding: np.ndarray, top_k: int = 5
-    ) -> List[Tuple[int, float]]:
+    ) -> List[Tuple[str, float]]:
         """Search for similar embeddings in the Faiss index.
 
         Args:
@@ -35,7 +39,7 @@ class FaissIndex:
             top_k (int): Amount of top similar documents.
 
         Returns:
-            List[Tuple[int, float]]: Simmilar documents list.
+            List[Tuple[int, float]]: Similar documents list.
         """
         distances, indices = self.index.search(query_embedding, top_k)
         return [
@@ -43,6 +47,33 @@ class FaissIndex:
             for i, idx in enumerate(indices[0])
             if distances[0][i] > 0
         ]
+
+    def update_embeddings(self, existing_filenames: List[str], processed_docs: List[str], filenames: List[str], extractor: EmbeddingExtractor) -> None:
+        """Update Faiss index embeddings"""
+        new_embeddings = []
+        new_filenames = []
+
+        for doc, filename in zip(processed_docs, filenames):
+            if filename not in existing_filenames:
+                new_embedding = extractor.extract_embeddings([doc]).reshape(1, -1)
+                if not self.document_exists(new_embedding):
+                    new_embeddings.append(new_embedding)
+                    new_filenames.append(filename)
+
+        if new_embeddings:
+            new_embeddings = np.vstack(new_embeddings)
+            self.add_embeddings(new_embeddings, new_filenames)
+            self.save_index("faiss_index.bin", "document_ids.pkl")
+            joblib.dump(existing_filenames + new_filenames, "document_ids.pkl")
+
+    def remove_duplicates(self) -> None:
+        """Remove duplicate embeddings from the Faiss index."""
+        unique_ids, unique_indices = np.unique(self.document_ids, return_index=True)
+        unique_embeddings = self.index.reconstruct_n(0, len(unique_ids))
+
+        self.index = faiss.IndexFlatL2(unique_embeddings.shape[1])
+        self.index.add(unique_embeddings)
+        self.document_ids = unique_ids.tolist()
 
     def save_index(self, index_path: str, ids_path: str) -> None:
         """Save Faiss index and document IDs."""
@@ -54,8 +85,33 @@ class FaissIndex:
         self.index = faiss.read_index(index_path)
         self.document_ids = joblib.load(ids_path)
 
+    @staticmethod
+    def save_csv(new_doc: str, similar_docs: List[Tuple[str, float]], csv_filename: str = 'search_results.csv') -> None:
+        """Saving search results to .csv file"""
+        new_data = []
+        updated_data = None
+        for doc_id, dist in similar_docs:
+            new_data.extend([
+                {
+                    "Document": new_doc,
+                    "Similar_Document": doc_id,
+                    "Distance": dist,
+                    "Similar_Document_Content": "" # UPDATE IT
+                }
+            ])
+        new_data_df = pd.DataFrame(new_data, columns=["Document", "Similar_Document", "Distance", "Similar_Document_Content"])
+
+        if os.path.exists(csv_filename):
+            existing_data = pd.read_csv(csv_filename)
+            updated_data = pd.concat([existing_data, new_data_df], ignore_index=True)
+        else:
+            updated_data = new_data_df
+
+        updated_data.to_csv(csv_filename, index=False)
+        logger.success(f"Search results save in {csv_filename}.")
+
     def document_exists(
-        self, document: str, embeddings: np.ndarray, threshold: float = 1e-5
+        self, embeddings: np.ndarray, threshold: float = 1e-7
     ) -> bool:
         """Check if a document already exists in the Faiss index."""
         query_embedding = embeddings[-1].reshape(1, -1)

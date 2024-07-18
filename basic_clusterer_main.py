@@ -1,8 +1,3 @@
-# import optuna
-# from sklearn.pipeline import Pipeline
-# from sklearn.model_selection import train_test_split
-# from concurrent.futures import ThreadPoolExecutor
-
 from loguru import logger
 from sklearn.metrics import (
     silhouette_score,
@@ -101,12 +96,6 @@ if __name__ == "__main__":
     best_min_samples = 10
     best_cluster_selection_method = "eom"
     best_metric = "chebyshev"
-    # good metrics (top)
-    # cityblock -0.05
-    # manhattan -0.03
-    # minkowski 0.034
-    # euclidean 0.02
-    # chebyshev 0.13
 
     folder_path = "companies_data"
     loader = DocumentLoader(folder_path)
