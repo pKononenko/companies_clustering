@@ -6,6 +6,7 @@ import numpy as np
 from typing import List, Tuple
 import faiss
 from embeddings.embedding_extractor import EmbeddingExtractor
+from concurrent.futures import ThreadPoolExecutor
 
 
 class FaissIndex:
@@ -47,6 +48,19 @@ class FaissIndex:
             for i, idx in enumerate(indices[0])
             if distances[0][i] > 0
         ]
+
+    # temp
+    # def parallel_search(self, query_embeddings: np.ndarray, top_k: int = 5,
+    #                           num_workers: int = None) -> List[List[Tuple[str, float]]]:
+    #     """Search for similar embeddings in the Faiss index in parallel."""
+    #     def search_single(query_embedding):
+    #         return self.search(query_embedding, top_k)
+    #
+    #     with ThreadPoolExecutor(max_workers=num_workers) as executor:
+    #         #results = list(executor.map(lambda qe: self.search(qe, top_k), query_embeddings))
+    #         #results = list(executor.map(self.search, (query_embeddings, top_k)))
+    #         results = list(executor.map(search_single, query_embeddings))
+    #     return results
 
     def update_embeddings(self, existing_filenames: List[str], processed_docs: List[str], filenames: List[str], extractor: EmbeddingExtractor) -> None:
         """Update Faiss index embeddings"""

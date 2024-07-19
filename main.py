@@ -21,7 +21,8 @@ if __name__ == "__main__":
     processed_docs = preprocessor.preprocess_documents(documents)
 
     extractor = EmbeddingExtractor(model_name='bert-base-nli-mean-tokens')
-    embeddings = extractor.extract_embeddings(processed_docs)
+    #embeddings = extractor.extract_embeddings(processed_docs)
+    embeddings = extractor.parallel_embedding_extraction(processed_docs, num_workers=8)
 
     embedding_dim = embeddings.shape[1]
     faiss_index = FaissIndex(embedding_dim)
@@ -49,6 +50,7 @@ if __name__ == "__main__":
         faiss_index.save_index("faiss_index.bin", "document_ids.pkl")
 
     similar_docs = faiss_index.search(new_doc_embedding, top_k=5)
+    #similar_docs = faiss_index.parallel_search(new_doc_embedding, top_k=5)
     faiss_index.save_csv(new_doc, similar_docs)
     for doc_id, dist in similar_docs:
         print(f"Document: {doc_id}, Distance: {dist}")

@@ -37,7 +37,8 @@ def cli(option, num_docs, new_doc, top_k):
     if option == 1:
         documents, filenames = loader.load_documents(num_samples=num_docs)
         processed_docs = preprocessor.preprocess_documents(documents)
-        embeddings = extractor.extract_embeddings(processed_docs)
+        #embeddings = extractor.extract_embeddings(processed_docs)
+        embeddings = extractor.parallel_embedding_extraction(processed_docs, num_workers=4)
 
         # Check if embeddings vector db exists
         if os.path.exists("faiss_index.bin") and os.path.exists("document_ids.pkl"):
@@ -65,6 +66,7 @@ def cli(option, num_docs, new_doc, top_k):
                 faiss_index.save_index("faiss_index.bin", "document_ids.pkl")
 
             similar_docs = faiss_index.search(new_doc_embedding, top_k=top_k)
+            #similar_docs = faiss_index.parallel_search(new_doc_embedding, top_k=top_k)
             faiss_index.save_csv(new_doc, similar_docs)
             for doc_id, dist in similar_docs:
                 print(f"Document: {doc_id}, Distance: {dist}")

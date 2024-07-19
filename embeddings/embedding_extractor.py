@@ -2,6 +2,7 @@ import joblib
 import numpy as np
 from loguru import logger
 from typing import List, Tuple
+from concurrent.futures import ThreadPoolExecutor
 from sentence_transformers import SentenceTransformer
 
 
@@ -30,6 +31,22 @@ class EmbeddingExtractor:
         )
         logger.success("Embeddings extracted successfully.")
         return embeddings
+
+    def parallel_embedding_extraction(self, documents: List[str],
+                                      num_workers: int = None) -> np.ndarray:
+        """Extract embeddings from text documents in parallel.
+
+        Args:
+            documents (List[str]): Preprocessed textual data array.
+            num_workers (int): PoolExecutor number of workers.
+
+        Returns:
+            np.ndarray: Embeddings array.
+        """
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            chunks = np.array_split(documents, num_workers)
+            embeddings_list = list(executor.map(self.extract_embeddings, chunks))
+        return np.vstack(embeddings_list)
 
     def extract_sentence_embeddings(
         self, document: str
