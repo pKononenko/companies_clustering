@@ -37,18 +37,23 @@ def cli(option, num_docs, new_doc, top_k):
     if option == 1:
         documents, filenames = loader.load_documents(num_samples=num_docs)
         processed_docs = preprocessor.preprocess_documents(documents)
-        #embeddings = extractor.extract_embeddings(processed_docs)
-        embeddings = extractor.parallel_embedding_extraction(processed_docs, num_workers=4)
+        embeddings = extractor.extract_embeddings(processed_docs)
+        #embeddings = extractor.parallel_embedding_extraction(processed_docs, num_workers=None)
 
         # Check if embeddings vector db exists
         if os.path.exists("faiss_index.bin") and os.path.exists("document_ids.pkl"):
             faiss_index.load_index("faiss_index.bin", "document_ids.pkl")
             existing_filenames = joblib.load("document_ids.pkl")
+            print(existing_filenames)
             faiss_index.update_embeddings(existing_filenames, processed_docs, filenames, extractor)
         else:
             faiss_index.add_embeddings(embeddings, filenames)
             faiss_index.save_index("faiss_index.bin", "document_ids.pkl")
             joblib.dump(filenames, "document_ids.pkl")
+
+        faiss_index.remove_duplicates()
+
+        print(faiss_index.index.ntotal)
 
     elif option == 2:
         if not os.path.exists("faiss_index.bin") or not os.path.exists("document_ids.pkl"):

@@ -2,7 +2,8 @@ import joblib
 import numpy as np
 from loguru import logger
 from typing import List, Tuple
-from concurrent.futures import ThreadPoolExecutor
+#from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from sentence_transformers import SentenceTransformer
 
 
@@ -43,10 +44,17 @@ class EmbeddingExtractor:
         Returns:
             np.ndarray: Embeddings array.
         """
-        with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            chunks = np.array_split(documents, num_workers)
-            embeddings_list = list(executor.map(self.extract_embeddings, chunks))
-        return np.vstack(embeddings_list)
+        # with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        #     chunks = np.array_split(documents, num_workers)
+        #     embeddings_list = list(executor.map(self.extract_embeddings, chunks))
+        # return np.vstack(embeddings_list)
+
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            futures = [executor.submit(self.extract_embeddings, chunk) for chunk in np.array_split(documents, num_workers)]
+            results = []
+            for future in as_completed(futures):
+                results.append(future.result())
+        return np.vstack(results)
 
     def extract_sentence_embeddings(
         self, document: str

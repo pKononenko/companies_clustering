@@ -62,7 +62,8 @@ class FaissIndex:
     #         results = list(executor.map(search_single, query_embeddings))
     #     return results
 
-    def update_embeddings(self, existing_filenames: List[str], processed_docs: List[str], filenames: List[str], extractor: EmbeddingExtractor) -> None:
+    def update_embeddings(self, existing_filenames: List[str], processed_docs: List[str],
+                          filenames: List[str], extractor: EmbeddingExtractor) -> None:
         """Update Faiss index embeddings"""
         new_embeddings = []
         new_filenames = []
@@ -74,6 +75,7 @@ class FaissIndex:
                     new_embeddings.append(new_embedding)
                     new_filenames.append(filename)
 
+        print(len(new_embeddings), len(new_filenames))
         if new_embeddings:
             new_embeddings = np.vstack(new_embeddings)
             self.add_embeddings(new_embeddings, new_filenames)
